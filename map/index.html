@@ -13,6 +13,8 @@
 	#info div {padding:0px;padding-left:10px;margin:0px;}
 	#info div h1 {margin-top:10px;font-size:16px;}
 	#info div p {font-size:14px;color:#333;}
+	#map_control{position: absolute;bottom:5px;left:0px;right:10px;}
+	#map_url {width: 100%;}
 	.custom-mouse-position{top:8px;left:60px;position:absolute}
 	.ol-viewport .ol-unselectable{-webkit-touch-callout:none;-webkit-user-select:none;-khtml-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 	.ol-control{position:absolute;background-color:#eee;background-color:rgba(255,255,255,.4);border-radius:1px;padding:2px}
@@ -69,18 +71,49 @@
 		<h1>Dump1090</h1>
 		<p id="geninfo"></p>
 		<p id="selinfo">Click on a plane for info.</p>
-		<a href="#" onclick="pause_resume(this); return false;" id="pause_btn">Pause</a>
+		<div id="map_control">
+			<a href="#" onclick="pause_resume(this); return false;" id="pause_btn">Pause</a><br><br>
+			<select id="map_source" title="Maps"></select><br>
+			<input id="map_url" name="map_url" value="" title="{x}, {y} and {z} are automatically replaced.
+Example of url : http://example.com/{z}/{x}/{y}.png"/>
+		</div>
 	</div>
 </div>
 <script type="text/javascript">	
 	var json_server=location.protocol+"//"+location.hostname+":8080/"; /* "http://127.0.0.1:8080/" */
-	var map_server="http://c.tile.openstreetmap.org/{z}/{x}/{y}.png";
+	var map_servers={
+		"OpenStreetMap":"http://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+		"Google Maps":"http://mt0.google.com/vt/hl=en&x={x}&y={y}&z={z}&s=Ga",
+		"Topo mondial ESRI":"http://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+		"National Geographic":"http://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}",
+		"HERE Satellite":"http://b.maptile.maps.svc.ovi.com/maptiler/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/256/jpg",
+		"Google Satellite":"http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+		"Custom map":""
+	};
+	var map_server=map_servers["OpenStreetMap"]; /* "http://c.tile.openstreetmap.org/{z}/{x}/{y}.png" */
 	var map_center=[2.0, 46.0]; /* [lat,lon] */
 	var map_zoom=6;
 	var pause=false;
 	var Planes={};
 	var Selected=null;
 	var source = null;
+	var layer;
+
+	var map_source = document.getElementById('map_source');
+	for(var i in map_servers){
+		map_source.add(new Option(i,map_servers[i]));
+	}
+	map_source.onchange=function(e){
+		map_url.value=map_source.value;
+		switch_map(map_url.value);
+	};
+
+	var map_url=document.getElementById('map_url');
+	map_url.value=map_server;
+	map_url.onchange=function(e){
+		map_source.value="";
+		switch_map(map_url.value);
+	};
 
 	/* ----------------- Openlayers ----------------- */
 
@@ -104,7 +137,7 @@
 			})
 		});
 
-		var layer = new ol.layer.Tile({
+		layer = new ol.layer.Tile({
 			source: new ol.source.XYZ ({
 				url: map_server
 			})
