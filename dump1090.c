@@ -51,7 +51,7 @@
 #define MODES_DEFAULT_WIDTH        1000
 #define MODES_DEFAULT_HEIGHT       700
 #define MODES_ASYNC_BUF_NUMBER     12
-#define MODES_DATA_LEN             (16*16384)   /* 256k */
+#define MODES_DATA_LEN             262144       /* (16*16384) 256k */
 #define MODES_AUTO_GAIN            -100         /* Use automatic gain. */
 #define MODES_MAX_GAIN             999999       /* Use max available gain. */
 
@@ -59,8 +59,8 @@
 #define MODES_LONG_MSG_BITS 112
 #define MODES_SHORT_MSG_BITS 56
 #define MODES_FULL_LEN (MODES_PREAMBLE_US+MODES_LONG_MSG_BITS)
-#define MODES_LONG_MSG_BYTES (112/8)
-#define MODES_SHORT_MSG_BYTES (56/8)
+#define MODES_LONG_MSG_BYTES 14 /* (112/8) */
+#define MODES_SHORT_MSG_BYTES 7 /* (56/8) */
 
 #define MODES_ICAO_CACHE_LEN 1024 /* Power of two required. */
 #define MODES_ICAO_CACHE_TTL 60   /* Time to live of cached addresses. */
@@ -89,7 +89,7 @@
 #define MODES_NET_INPUT_RAW_PORT 30001
 #define MODES_NET_HTTP_PORT 8080
 #define MODES_CLIENT_BUF_SIZE 1024
-#define MODES_NET_SNDBUF_SIZE (1024*64)
+#define MODES_NET_SNDBUF_SIZE 524288 /* (1024*64) */
 
 #define MODES_NOTUSED(V) ((void) V)
 
@@ -2138,6 +2138,7 @@ char *aircraftsToJson(int *len) {
     int buflen = 1024; /* The initial buffer is incremented as needed. */
     char *buf = malloc(buflen), *p = buf;
     int l;
+    time_t now = time(NULL);
 
     l = snprintf(p,buflen,"[\n");
     p += l; buflen -= l;
@@ -2154,9 +2155,9 @@ char *aircraftsToJson(int *len) {
             l = snprintf(p,buflen,
                 "{\"hex\":\"%s\", \"flight\":\"%s\", \"lat\":%f, "
                 "\"lon\":%f, \"altitude\":%d, \"track\":%d, "
-                "\"speed\":%d},\n",
+                "\"speed\":%d, \"seen\":%d},\n",
                 a->hexaddr, a->flight, a->lat, a->lon, a->altitude, a->track,
-                a->speed);
+                a->speed,(int)(now - a->seen));
             p += l; buflen -= l;
             /* Resize if needed. */
             if (buflen < 256) {
@@ -2183,6 +2184,9 @@ char *aircraftsToJson(int *len) {
 
 #define MODES_CONTENT_TYPE_HTML "text/html;charset=utf-8"
 #define MODES_CONTENT_TYPE_JSON "application/json;charset=utf-8"
+#define MODES_CONTENT_TYPE_JS "text/javascript; charset=UTF-8"
+#define MODES_CONTENT_TYPE_PNG "image/png;charset=utf-8"
+#define MODES_CONTENT_TYPE_ICO "image/vnd.microsoft.icon;charset=utf-8"
 
 /* Get an HTTP request header and write the response to the client.
  * Again here we assume that the socket buffer is enough without doing
@@ -2224,7 +2228,7 @@ int handleHTTPRequest(struct client *c) {
     }
 
     /* Select the content to send, we have just two so far:
-     * "/" -> Our google map application.
+     * "/" -> Our map application.
      * "/data.json" -> Our ajax request to update planes. */
     if (strstr(url, "/data.json")) {
         content = aircraftsToJson(&clen);
@@ -2232,9 +2236,26 @@ int handleHTTPRequest(struct client *c) {
     } else {
         struct stat sbuf;
         int fd = -1;
+		char *file_name;
+        if(strstr(url, "/ol.js")){
+                file_name = "map/ol.js";
+                ctype = MODES_CONTENT_TYPE_JS;
+        }else if(strstr(url, "/plane.png")){
+                file_name = "map/plane.png";
+                ctype = MODES_CONTENT_TYPE_PNG;
+        }else if(strstr(url, "aireline_codes.js")){
+                file_name = "map/aireline_codes.js";
+                ctype = MODES_CONTENT_TYPE_JS;
+        }else if(strstr(url, "favicon.ico")){
+                file_name = "map/favicon.ico";
+                ctype = MODES_CONTENT_TYPE_ICO;
+        }else{
+                file_name = "map/index.html";
+                ctype = MODES_CONTENT_TYPE_HTML;
+        }
 
-        if (stat("gmap.html",&sbuf) != -1 &&
-            (fd = open("gmap.html",O_RDONLY)) != -1)
+        if (stat(file_name,&sbuf) != -1 &&
+            (fd = open(file_name,O_RDONLY)) != -1)
         {
             content = malloc(sbuf.st_size);
             if (read(fd,content,sbuf.st_size) == -1) {
@@ -2250,7 +2271,7 @@ int handleHTTPRequest(struct client *c) {
             content = strdup(buf);
         }
         if (fd != -1) close(fd);
-        ctype = MODES_CONTENT_TYPE_HTML;
+        
     }
 
     /* Create the header and send the reply. */
@@ -2270,13 +2291,19 @@ int handleHTTPRequest(struct client *c) {
         printf("HTTP Reply header:\n%s", hdr);
 
     /* Send header and content. */
-    if (write(c->fd, hdr, hdrlen) != hdrlen ||
-        write(c->fd, content, clen) != clen)
-    {
+    if (write(c->fd, hdr, hdrlen) != hdrlen){
         free(content);
         return 1;
     }
+    ssize_t s;
+    s= write(c->fd, content, clen);
+    while( s<clen && s!=-1){
+        s+= write(c->fd, content+s, clen);
+    }
     free(content);
+    if (s<0){
+        return 1;
+    }
     Modes.stat_http_requests++;
     return !keepalive;
 }
