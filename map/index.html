@@ -8,16 +8,21 @@
 	<script src="aireline_codes.js" type="text/javascript"></script>
 	<link rel="icon" type="image/vnd.microsoft.icon" href="favicon.ico" />
 	<style>
-	#map {top: 0px;bottom: 0px;position: fixed;}
-	#info {position: absolute;width:20%;height:100%;bottom:0px;right:0px;top:0px;background-color: white;border-left:1px #666 solid;font-family:Helvetica;}
-	#info div {padding:0px;padding-left:10px;margin:0px;}
+	#map {top: 0px;bottom: 0px;position: fixed;left: 0px; right: 260px;}
+	#info {position: fixed;width:260px;height:100%;bottom:0px;right:0px;top:0px;background-color: white;border-left:1px #666 solid;font-family:Helvetica;overflow-y: auto;}
+	#info div {padding:0px;padding-left:10px;margin:0px;width:227px;}
 	#info div h1 {margin-top:10px;font-size:16px;}
 	#info div p {font-size:14px;color:#333;}
-	#map_control{position: absolute;bottom:5px;left:0px;right:10px;}
-	#map_url {width: 100%;}
-	.custom-mouse-position{top:8px;left:60px;position:absolute}
+	#plane_infos{height:238px;}
+	#planes_list {bottom: 0px;min-height: 200px;}
+	#planes_list table tr td {padding-right:10px;}
+	#map_control * {background-color:rgba(0, 60, 136, 0.5);border: medium none;border-radius: 2px;color: #fff;padding: 5px;text-decoration:none;margin: 0 0 3px;}
+	#map_url {width: 220px;}
+	#pause_btn{background-color:rgba(0, 60, 136, 0.5);border: medium none;border-radius: 2px;color: #fff;padding: 5px;text-decoration:none;}
+	#hide_show_info_btn{position: fixed;right: 0px;top: 0px;width:20px;height:20px;display:block;margin:1px;padding:0;color:#fff;font-size:1.14em;text-decoration:none;text-align:center;height:1.375em;width:1.375em;background-color:#7b98bc;background-color:rgba(0,60,136,.5);border:none;border-radius:2px}
+	.custom-mouse-position{top:8px;left:60px;position:absolute;background-color:rgba(255,255,255,.4);border-radius:1px;padding:2px;}
 	.ol-viewport .ol-unselectable{-webkit-touch-callout:none;-webkit-user-select:none;-khtml-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-	.ol-control{position:absolute;background-color:#eee;background-color:rgba(255,255,255,.4);border-radius:1px;padding:2px}
+	.ol-control{position:absolute;background-color:#eee;background-color:rgba(255,255,255,.4);border: medium none;border-radius:2px;padding:5px}
 	.ol-control:hover{background-color:rgba(255,255,255,.6)}
 	.ol-zoom{top:.5em;left:.5em}
 	.ol-rotate{top:.5em;right:.5em;transition:opacity .25s linear,visibility 0s linear}
@@ -65,20 +70,22 @@
 	</style>
 </head>
 <body>
-<div id="map" style="width:80%; height:100%"></div>
+<div id="map"></div>
 <div id="info">
-	<div>
+	<div id="plane_infos">
 		<h1>Dump1090</h1>
 		<p id="geninfo"></p>
 		<p id="selinfo">Click on a plane for info.</p>
-		<div id="map_control">
-			<a href="#" onclick="pause_resume(this); return false;" id="pause_btn">Pause</a><br><br>
-			<select id="map_source" title="Maps"></select><br>
-			<input id="map_url" name="map_url" value="" title="{x}, {y} and {z} are automatically replaced.
-Example of url : http://example.com/{z}/{x}/{y}.png"/>
-		</div>
+		<a href="#" onclick="pause_resume(this); return false;" id="pause_btn">Pause</a><br>
 	</div>
+	<div id="map_control">
+		Map : <select id="map_source" title="Maps"></select><br>
+		<input id="map_url" name="map_url" value="" title="{x}, {y} and {z} are automatically replaced.
+Example of url : http://example.com/{z}/{x}/{y}.png"/>
+	</div>
+	<div id="planes_list"></div>
 </div>
+<div id="hide_show_info_btn" onclick="hide_show_info();" title="Hide">▶</div>
 <script type="text/javascript">	
 	var json_server=location.protocol+"//"+location.hostname+":8080/"; /* "http://127.0.0.1:8080/" */
 	var map_servers={
@@ -97,7 +104,8 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 	var Planes={};
 	var Selected=null;
 	var source = null;
-	var layer;
+	var layer=null;
+	var show_info=true;
 
 	var map_source = document.getElementById('map_source');
 	for(var i in map_servers){
@@ -183,6 +191,21 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 
 	/* ----------------- Dump1090 ----------------- */
 
+	function hide_show_info() {
+		if(show_info){
+			document.getElementById('info').style='width:0px;';
+			document.getElementById('map').style='right:0px;';
+			document.getElementById('hide_show_info_btn').innerHTML='◀';
+			document.getElementById('hide_show_info_btn').title="Show";
+		}else{
+			document.getElementById('info').style='width:260px;';
+			document.getElementById('map').style='right:260px;';
+			document.getElementById('hide_show_info_btn').innerHTML='▶';
+			document.getElementById('hide_show_info_btn').title="Hide";
+		}
+		show_info=!show_info;
+	}
+
 	function get_style(plane) {
 		var r = 255, g = 255, b = 0;
 		var maxalt = 40000; /* Max altitude in the average case */
@@ -231,7 +254,7 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 		html += 'Altitude: '+p.altitude+' feet | '+(p.altitude/3.280840).toFixed()+' m<br>';
 		html += 'Speed: '+p.speed+' knots | '+(p.speed*1.852).toFixed()+' km/h<br>';
 		html += 'Coordinates: '+p.lat+', '+p.lon+'<br>';
-		html += 'Seen: '+(p.seen>=60?'lost':p.seen+' sec')+'<br>';
+		html += 'Seen: '+(p.seen>=60?'lost':p.seen+'')+' sec<br>';
 		document.getElementById('selinfo').innerHTML = html;
 	}
 
@@ -243,6 +266,7 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 				try{
 					var data = JSON.parse(xhr.responseText);
 					var stillhere = {};
+					var list="<table><tr><th>ICAO</th><th>Flight</th><th>Seen</th></tr>";
 					for (var j=0; j < data.length; j++) {
 						var plane = data[j];
 						var marker = null;
@@ -267,7 +291,9 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 							Planes[plane.hex] = plane;
 							add_plane(plane);
 						}
+						list+="<tr><td>"+plane.hex+"</td><td>"+plane.flight+"</td><td>"+(plane.seen>=60?'lost':plane.seen+' sec')+"</td></tr>";
 					}
+					document.getElementById('planes_list').innerHTML=list+"</table>";
 					for (var p in Planes) {
 						if (!stillhere[p]) {
 							source.removeFeature(source.getFeatureById(p));
