@@ -9,7 +9,7 @@ The main features are:
   improved range compared to other popular decoders.
 * Network support: TCP30003 stream (MSG5...), Raw packets, HTTP.
 * Embedded HTTP server that displays the currently detected aircrafts on
-  Google Map.
+  Open Street Map.
 * Single bit errors correction using the 24 bit CRC.
 * Ability to decode DF11, DF17 messages.
 * Ability to decode DF formats like DF0, DF4, DF5, DF16, DF20 and DF21
@@ -52,6 +52,9 @@ To run the program in interactive mode, with networking support, and connect
 with your browser to http://localhost:8080 to see live traffic:
 
     ./dump1090 --interactive --net
+
+Or with another port:
+    ./dump1090 --interactive --net --net-http-port 80
 
 In iteractive mode it is possible to have a less information dense but more
 "arcade style" output, where the screen is refreshed every second displaying
