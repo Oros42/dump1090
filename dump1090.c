@@ -2291,19 +2291,16 @@ int handleHTTPRequest(struct client *c) {
         printf("HTTP Reply header:\n%s", hdr);
 
     /* Send header and content. */
-    if (write(c->fd, hdr, hdrlen) != hdrlen){
+    if (anetWrite(c->fd, hdr, hdrlen) != hdrlen){
         free(content);
         return 1;
     }
-    ssize_t s;
-    s= write(c->fd, content, clen);
-    while( s<clen && s!=-1){
-        s+= write(c->fd, content+s, clen);
-    }
-    free(content);
-    if (s<0){
+
+    if (anetWrite(c->fd, content, clen) != clen){
+        free(content);
         return 1;
     }
+
     Modes.stat_http_requests++;
     return !keepalive;
 }

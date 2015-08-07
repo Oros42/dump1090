@@ -243,13 +243,21 @@ int anetRead(int fd, char *buf, int count)
  * (unless error is encountered) */
 int anetWrite(int fd, char *buf, int count)
 {
+    fd_set writedfs;
+    int ret = 0;
+    FD_ZERO(&writedfs);
+    FD_SET(fd, &writedfs);
     int nwritten, totlen = 0;
     while(totlen != count) {
-        nwritten = write(fd,buf,count-totlen);
-        if (nwritten == 0) return totlen;
-        if (nwritten == -1) return -1;
-        totlen += nwritten;
-        buf += nwritten;
+        if((ret = select(fd + 1,  NULL, &writedfs,NULL, NULL)) < 0) { return -1; }
+        if(ret == 0){ return -1; }
+        if(FD_ISSET(fd, &writedfs)){
+            nwritten = write(fd,buf,count-totlen);
+            if (nwritten == 0) return totlen;
+            if (nwritten == -1) return -1;
+            totlen += nwritten;
+            buf += nwritten;
+        }
     }
     return totlen;
 }
