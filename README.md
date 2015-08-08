@@ -30,7 +30,12 @@ available, developed by MalcolmRobb.
 Installation
 ---
 
-Type "make".
+```
+sudo apt-get install -y git make gcc librtlsdr-dev pkg-config libusb-1.0
+git clone https://github.com/Oros42/dump1090.git
+cd dump1090
+sudo rmmod dvb_usb_rtl28xxu
+```
 
 Normal usage
 ---
@@ -54,6 +59,7 @@ with your browser to http://localhost:8080 to see live traffic:
     ./dump1090 --interactive --net
 
 Or with another port:
+
     ./dump1090 --interactive --net --net-http-port 80
 
 In iteractive mode it is possible to have a less information dense but more
