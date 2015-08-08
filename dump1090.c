@@ -2302,7 +2302,7 @@ int handleHTTPRequest(struct client *c) {
         free(content);
         return 1;
     }
-
+    free(content);
     Modes.stat_http_requests++;
     return !keepalive;
 }
