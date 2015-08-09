@@ -8,8 +8,8 @@
 	<script src="aireline_codes.js" type="text/javascript"></script>
 	<link rel="icon" type="image/vnd.microsoft.icon" href="favicon.ico" />
 	<style>
-	#map {top: 0px;bottom: 0px;position: fixed;left: 0px; right: 260px;}
-	#info {position: fixed;width:260px;height:100%;bottom:0px;right:0px;top:0px;background-color: white;border-left:1px #666 solid;font-family:Helvetica;overflow-y: auto;}
+	#map {top: 0px;bottom: 0px;position: fixed;left: 0px; right: 0px;}
+	#info {position: fixed;width:260px;height:100%;bottom:0px;right:0px;top:0px;background-color: rgba(255, 255, 255, 0.85);border-left:1px #666 solid;font-family:Helvetica;overflow-y: auto;}
 	#info div {padding:0px;padding-left:10px;margin:0px;width:227px;}
 	#info div h1 {margin-top:10px;font-size:16px;}
 	#info div p {font-size:14px;color:#333;}
@@ -194,12 +194,10 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 	function hide_show_info() {
 		if(show_info){
 			document.getElementById('info').style='width:0px;';
-			document.getElementById('map').style='right:0px;';
 			document.getElementById('hide_show_info_btn').innerHTML='◀';
 			document.getElementById('hide_show_info_btn').title="Show";
 		}else{
 			document.getElementById('info').style='width:260px;';
-			document.getElementById('map').style='right:260px;';
 			document.getElementById('hide_show_info_btn').innerHTML='▶';
 			document.getElementById('hide_show_info_btn').title="Hide";
 		}
