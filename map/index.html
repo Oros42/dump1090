@@ -97,8 +97,9 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 		"Google Satellite":"http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
 		"Custom map":""
 	};
+	var map=null;
 	var map_server=map_servers["OpenStreetMap"]; /* "http://c.tile.openstreetmap.org/{z}/{x}/{y}.png" */
-	var map_center=[2.0, 46.0]; /* [lat,lon] */
+	var map_center=ol.proj.transform([2.0, 46.0], 'EPSG:4326', 'EPSG:3857'); /* [lat,lon] */
 	var map_zoom=6;
 	var pause=false;
 	var Planes={};
@@ -151,7 +152,7 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 			})
 		});
 
-		var map = new ol.Map({
+		map = new ol.Map({
 			layers: [layer, vector],
 			controls: ol.control.defaults().extend([mousePositionControl,scaleLineControl]),
 			interactions: ol.interaction.defaults().extend([
@@ -160,7 +161,7 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 			renderer: 'dom', /* dom, webgl */
 			view: new ol.View({
 				maxZoom: 18,
-				center: ol.proj.transform(map_center, 'EPSG:4326', 'EPSG:3857'),
+				center: map_center,
 				zoom: map_zoom
 			}),
 			target: 'map'
@@ -186,7 +187,15 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 	* url like "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
 	*/
 	function switch_map(url) {
-		layer.setSource(new ol.source.XYZ ({url: url}));
+		pause=true;
+		map_server=document.getElementById('map_url').value;
+		document.getElementById('map').innerHTML="";
+		Planes={};
+		map_zoom=map.getView().getZoom();
+		map_center=map.getView().getCenter();
+		load_map();
+		pause=false;
+		document.getElementById('pause_btn')='Pause';
 	}
 
 	/* ----------------- Dump1090 ----------------- */
@@ -301,7 +310,7 @@ Example of url : http://example.com/{z}/{x}/{y}.png"/>
 					document.getElementById('geninfo').innerHTML = data.length+' planes on screen.';
 				}catch(e){
 					pause=true;
-					document.getElementById('pause_btn').innerHTML="Resume (fetchData error!)";
+					document.getElementById('pause_btn').innerHTML="Resume (fetchData error!)"+e;
 				}
 			}
 		};
